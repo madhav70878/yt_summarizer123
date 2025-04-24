@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube URL Sender</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      width: 300px;
+    }
+    #response {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Submit YouTube URL</h2>
+  <input type="text" id="ytUrl" placeholder="Enter YouTube URL" />
+  <br />
+  <button onclick="sendUrl()">Send</button>
+
+  <div id="response"></div>
+
+  <script>
+    async function sendUrl() {
+      const url = document.getElementById("ytUrl").value;
+      const responseDiv = document.getElementById("response");
+
+      try {
+        const res = await fetch(`/summarize?url=${encodeURIComponent(url)}`);
+        console.log(res);
+        if (!res.ok) throw new Error("Request failed");
+
+        const data = await res.json();
+        responseDiv.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        responseDiv.textContent = "Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
