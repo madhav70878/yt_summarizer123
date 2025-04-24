@@ -4,6 +4,15 @@ from urllib.parse import urlparse, parse_qs
 from youtube_transcript_api import YouTubeTranscriptApi
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import GenericProxyConfig
+
+ytt_api = YouTubeTranscriptApi(
+    proxy_config=GenericProxyConfig(
+        http_url="http://seljfvuy:zuuql0ugd9at@38.153.152.244:9594",
+        https_url="https://seljfvuy:zuuql0ugd9at@38.153.152.244:9594",
+    )
+)
 app = FastAPI()
 
 # Extract video ID from URL
@@ -18,7 +27,7 @@ def extract_video_id(youtube_url: str):
 # Get transcript
 def get_transcript(video_id):
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        transcript = ytt_api.get_transcript(video_id)
         return " ".join([entry['text'] for entry in transcript])
     except Exception as e:
         return f"Error fetching transcript: {str(e)}"

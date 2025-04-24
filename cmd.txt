@@ -1,0 +1,1 @@
+aws cloudformation create-stack --stack-name yt-summarizer-stack --template-body file://deploy-to-ec2.yml --parameters ParameterKey=KeyName,ParameterValue=ubantu
