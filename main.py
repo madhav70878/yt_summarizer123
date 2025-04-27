@@ -1,18 +1,11 @@
 from fastapi import FastAPI, Query
 from transformers import pipeline
 from urllib.parse import urlparse, parse_qs
-from youtube_transcript_api import YouTubeTranscriptApi
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api.proxies import GenericProxyConfig
+import yt_dlp
+import json
 
-ytt_api = YouTubeTranscriptApi(
-    proxy_config=GenericProxyConfig(
-        http_url="http://seljfvuy:zuuql0ugd9at@38.153.152.244:9594",
-        https_url="https://seljfvuy:zuuql0ugd9at@38.153.152.244:9594",
-    )
-)
 app = FastAPI()
 
 # Extract video ID from URL
@@ -24,11 +17,41 @@ def extract_video_id(youtube_url: str):
         return parse_qs(parsed_url.query).get('v', [None])[0]
     return None
 
-# Get transcript
+# Get transcript using yt-dlp
 def get_transcript(video_id):
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    ydl_opts = {
+        'skip_download': True,
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitlesformat': 'json3',
+        'quiet': True,
+    }
+    
+
     try:
-        transcript = ytt_api.get_transcript(video_id)
-        return " ".join([entry['text'] for entry in transcript])
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            subtitles = info.get('subtitles') or info.get('automatic_captions')
+            if not subtitles:
+                return "Error: No subtitles found."
+
+            # Prefer English
+            if 'en' in subtitles:
+                sub_url = subtitles['en'][0]['url']
+            else:
+                # fallback: use first available
+                sub_url = list(subtitles.values())[0][0]['url']
+
+            # Now download the subtitle file
+            import requests
+            response = requests.get(sub_url)
+            response.raise_for_status()
+            data = response.json()
+
+            # Combine transcript texts
+            transcript = " ".join([event['segs'][0]['utf8'] for event in data['events'] if 'segs' in event])
+            return transcript
     except Exception as e:
         return f"Error fetching transcript: {str(e)}"
 
