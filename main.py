@@ -5,8 +5,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import yt_dlp
 import json
+import requests
 
 app = FastAPI()
+
+# Path to your cookies.txt file
+COOKIES_FILE_PATH = "cookies.txt"
 
 # Extract video ID from URL
 def extract_video_id(youtube_url: str):
@@ -17,7 +21,7 @@ def extract_video_id(youtube_url: str):
         return parse_qs(parsed_url.query).get('v', [None])[0]
     return None
 
-# Get transcript using yt-dlp
+# Get transcript using yt-dlp with cookies
 def get_transcript(video_id):
     url = f"https://www.youtube.com/watch?v={video_id}"
     ydl_opts = {
@@ -26,9 +30,9 @@ def get_transcript(video_id):
         'writeautomaticsub': True,
         'subtitlesformat': 'json3',
         'quiet': True,
+        'cookiefile': COOKIES_FILE_PATH,  # <-- added cookies support here
     }
     
-
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -40,17 +44,17 @@ def get_transcript(video_id):
             if 'en' in subtitles:
                 sub_url = subtitles['en'][0]['url']
             else:
-                # fallback: use first available
                 sub_url = list(subtitles.values())[0][0]['url']
 
-            # Now download the subtitle file
-            import requests
+            # Download the subtitle JSON
             response = requests.get(sub_url)
             response.raise_for_status()
             data = response.json()
 
             # Combine transcript texts
-            transcript = " ".join([event['segs'][0]['utf8'] for event in data['events'] if 'segs' in event])
+            transcript = " ".join(
+                [event['segs'][0]['utf8'] for event in data['events'] if 'segs' in event]
+            )
             return transcript
     except Exception as e:
         return f"Error fetching transcript: {str(e)}"
@@ -79,6 +83,7 @@ def summarize_youtube_video(url: str = Query(..., description="YouTube video URL
     summary = summarize_text(transcript)
     return {"summary": summary}
 
+# Static file serving
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")

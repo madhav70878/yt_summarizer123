@@ -18,6 +18,7 @@ This project is a web application that allows users to submit a YouTube video UR
 static/
   index.html
 main.py
+cookies.txt
 Dockerfile
 deploy-to-ec2.yml
 requirements.txt
@@ -95,4 +96,4 @@ Workflow File: `.github/workflows/build-and-push.yml`
 * uvicorn
 * torch
 * transformers
-* youtube_transcript_api
+* yt-dlp
