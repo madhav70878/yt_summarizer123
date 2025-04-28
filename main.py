@@ -1,16 +1,20 @@
 from fastapi import FastAPI, Query
 from transformers import pipeline
 from urllib.parse import urlparse, parse_qs
+from youtube_transcript_api import YouTubeTranscriptApi
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-import yt_dlp
-import json
-import requests
-
 app = FastAPI()
 
-# Path to your cookies.txt file
-COOKIES_FILE_PATH = "cookies.txt"
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import GenericProxyConfig
+ 
+ytt_api = YouTubeTranscriptApi(
+    proxy_config=GenericProxyConfig(
+        http_url="https://5caf-38-137-53-211.ngrok-free.app/",
+        https_url="https://5caf-38-137-53-211.ngrok-free.app/",
+    )
+)
 
 # Extract video ID from URL
 def extract_video_id(youtube_url: str):
@@ -21,41 +25,11 @@ def extract_video_id(youtube_url: str):
         return parse_qs(parsed_url.query).get('v', [None])[0]
     return None
 
-# Get transcript using yt-dlp with cookies
+# Get transcript
 def get_transcript(video_id):
-    url = f"https://www.youtube.com/watch?v={video_id}"
-    ydl_opts = {
-        'skip_download': True,
-        'writesubtitles': True,
-        'writeautomaticsub': True,
-        'subtitlesformat': 'json3',
-        'quiet': True,
-        'cookiefile': COOKIES_FILE_PATH,  # <-- added cookies support here
-    }
-    
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            subtitles = info.get('subtitles') or info.get('automatic_captions')
-            if not subtitles:
-                return "Error: No subtitles found."
-
-            # Prefer English
-            if 'en' in subtitles:
-                sub_url = subtitles['en'][0]['url']
-            else:
-                sub_url = list(subtitles.values())[0][0]['url']
-
-            # Download the subtitle JSON
-            response = requests.get(sub_url)
-            response.raise_for_status()
-            data = response.json()
-
-            # Combine transcript texts
-            transcript = " ".join(
-                [event['segs'][0]['utf8'] for event in data['events'] if 'segs' in event]
-            )
-            return transcript
+        transcript = ytt_api.get_transcript(video_id)
+        return " ".join([entry['text'] for entry in transcript])
     except Exception as e:
         return f"Error fetching transcript: {str(e)}"
 
@@ -83,7 +57,6 @@ def summarize_youtube_video(url: str = Query(..., description="YouTube video URL
     summary = summarize_text(transcript)
     return {"summary": summary}
 
-# Static file serving
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
