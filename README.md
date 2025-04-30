@@ -3,7 +3,7 @@
 This project is a web application that allows users to submit a YouTube video URL and receive a summarized transcript of the video. The application is built using FastAPI and serves both the user interface and the summarization functionality from a single deployment.
 
 ## Features
-* YouTube Transcript Extraction: Extracts the transcript of a YouTube video using the youtube_transcript_api.
+* YouTube Transcript Extraction: Extracts the transcript of a YouTube video using the youtube-dlp library.
 * Text Summarization: Summarizes the transcript using a pre-trained model from the transformers library.
 * User Interface: A simple HTML page for submitting YouTube URLs and displaying the summarized transcript.
 * Deployment: The application is deployed as a Docker container on an AWS EC2 instance.
